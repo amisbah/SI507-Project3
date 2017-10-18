@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 import unittest
 import requests
+import csv
 
 #########
 ## Instr note: the outline comments will stay as suggestions, otherwise it's too difficult.
@@ -171,7 +172,7 @@ except:
 class NationalSite(object):
 	def __init__(self,object):
 		self.location = object.find('h4').text
-		self.name = object.find('h3').find('a').text ## need just text
+		self.name = object.find('h3').text
 		if object.find('h2').text == "":
 			self.type = None
 		else:
@@ -179,7 +180,7 @@ class NationalSite(object):
 		if object.find('p').text == "":
 			self.description = ""
 		else:
-			self.description = object.find('p').text
+			self.description = object.find('p').text.strip()
 		park_links = object.find('div',{'class':'stateListLinks'})
 		park_list = park_links.find_all('li')
 		self.park_url = park_list[0].find('a').get('href')
@@ -188,29 +189,30 @@ class NationalSite(object):
 		return "{} | {}".format(self.name, self.location)
 
 	def get_mailing_address(self):
-		# park_link = self.find('h3')
-		# park_url = park_link.find('a').get('href')
 		site_html = requests.get(self.park_url).text
 		site_soup = BeautifulSoup(site_html,'html.parser')
 		park_address = site_soup.find('p',{'class':'adr'})
 		park_adr_span = park_address.find_all('span')
 		address = ""
 		for each in park_adr_span:
-			address += each.text ## make into a single line
-		address.strip('\n')
-		print(address)
+			address += each.text
+		stripped_address = address.strip()
+		formatted_address = stripped_address.replace('\n',' / ')
+		return formatted_address
+
+	def __contains__(self,x):
+		if x in self.name:
+			return True
+		else:
+			return False
 
 ## Recommendation: to test the class, at various points, uncomment the following code and invoke some of the 
 # methods / check out the instance variables of the test instance saved in the variable sample_inst:
 
-f = open("sample_html_of_park.html",'r')
-soup_park_inst = BeautifulSoup(f.read(), 'html.parser') # an example of 1 BeautifulSoup instance to pass into your class
-sample_inst = NationalSite(soup_park_inst)
-f.close()
-
-sample_inst.get_mailing_address()
-
-# sample_inst.get_mailing_address()
+# f = open("sample_html_of_park.html",'r')
+# soup_park_inst = BeautifulSoup(f.read(), 'html.parser') # an example of 1 BeautifulSoup instance to pass into your class
+# sample_inst = NationalSite(soup_park_inst)
+# f.close()
 
 ######### PART 3 #########
 
@@ -218,8 +220,32 @@ sample_inst.get_mailing_address()
 
 # HINT: Get a Python list of all the HTML BeautifulSoup instances that represent each park, for each state.
 
+arkansas_soup = BeautifulSoup(arkansas_html,'html.parser')
 
+arkansas_results = arkansas_soup.find('ul',{'id':'list_parks'})
+arkansas_list_html = arkansas_results.find_all('li',{'class':'clearfix'})
 
+arkansas_natl_sites = []
+for each in arkansas_list_html:
+	arkansas_natl_sites.append(NationalSite(each))
+
+michigan_soup = BeautifulSoup(michigan_html,'html.parser')
+
+michigan_results = michigan_soup.find('ul',{'id':'list_parks'})
+michigan_list_html = michigan_results.find_all('li',{'class':'clearfix'})
+
+michigan_natl_sites = []
+for each in michigan_list_html:
+	michigan_natl_sites.append(NationalSite(each))
+
+california_soup = BeautifulSoup(california_html,'html.parser')
+
+california_results = california_soup.find('ul',{'id':'list_parks'})
+california_list_html = california_results.find_all('li',{'class':'clearfix'})
+
+california_natl_sites = []
+for each in california_list_html:
+	california_natl_sites.append(NationalSite(each))
 
 ##Code to help you test these out:
 # for p in california_natl_sites:
@@ -229,13 +255,58 @@ sample_inst.get_mailing_address()
 # for m in michigan_natl_sites:
 # 	print(m)
 
-
-
 ######### PART 4 #########
 
 ## Remember the hints / things you learned from Project 2 about writing CSV files from lists of objects!
 
-## Note that running this step for ALL your data make take a minute or few to run -- so it's a good idea to test any methods/functions you write with just a little bit of data, so running the program will take less time!
+## Note that running this step for ALL your data make take a minute or few to run -- so it's a good idea to test any 
+# methods/functions you write with just a little bit of data, so running the program will take less time!
 
-## Also remember that IF you have None values that may occur, you might run into some problems and have to debug for where you need to put in some None value / error handling!
+## Also remember that IF you have None values that may occur, you might run into some problems and have to debug 
+# for where you need to put in some None value / error handling!
 
+# with open('arkansas.csv','w', newline='') as arkansas_file:
+# 	writer = csv.writer(arkansas_file)
+# 	arkansas_file.write('Name,Location,Type,Address,Description\n')
+# 	for each in arkansas_natl_sites:
+# 		writer.writerow([each.name,each.location,each.type,each.get_mailing_address(),each.description])
+
+# with open('michigan.csv','w', newline='') as michigan_file:
+# 	writer = csv.writer(michigan_file)
+# 	michigan_file.write('Name,Location,Type,Address,Description\n')
+# 	for each in michigan_natl_sites:
+# 		writer.writerow([each.name,each.location,each.type,each.get_mailing_address(),each.description])
+
+# with open('california.csv','w', newline='') as california_file:
+# 	writer = csv.writer(california_file)
+# 	california_file.write('Name,Location,Type,Address,Description\n')
+# 	for each in california_natl_sites:
+# 		writer.writerow([each.name,each.location,each.type,each.get_mailing_address(),each.description])
+# 	for row in california_natl_sites:
+# 		if not row["Type"].strip():
+# 			row["Type"] = "None"
+# 		writer.writerow(row)
+
+arkansas_file = open('arkansas.csv','w')
+arkansas_file.write('Name,Location,Type,Address,Description\n')
+
+for each in arkansas_natl_sites:
+	arkansas_file.write('"{}","{}","{}","{}","{}"\n'.format(each.name, each.location, each.type, each.get_mailing_address(), each.description))
+
+arkansas_file.close()
+
+michigan_file = open('michigan.csv','w')
+michigan_file.write('Name,Location,Type,Address,Description\n')
+
+for each in michigan_natl_sites:
+	michigan_file.write('"{}","{}","{}","{}","{}"\n'.format(each.name, each.location, each.type, each.get_mailing_address(), each.description))
+
+michigan_file.close()
+
+california_file = open('california.csv','w')
+california_file.write('Name,Location,Type,Address,Description\n')
+
+for each in california_natl_sites:
+	california_file.write('"{}","{}","{}","{}","{}"\n'.format(each.name, each.location, each.type, each.get_mailing_address(), each.description))
+
+california_file.close()
